@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Wand2, Shield, Anchor, Castle, Rocket, Trees, Palmtree, MilkyWay, Sparkles } from 'lucide-react';
+import { Loader2, Wand2, Shield, Anchor, Castle, Rocket, Trees, Palmtree, Stars, Sparkles } from 'lucide-react';
 import { AppHeader } from '@/components/header';
 import { Slider } from '@/components/ui/slider';
 import { getReadingLevelLabel, cn } from '@/lib/utils';
@@ -39,7 +39,7 @@ const settingPresets = [
   { name: 'An enchanted forest', icon: <Trees className="w-8 h-8" /> },
   { name: 'A mysterious island', icon: <Palmtree className="w-8 h-8" /> },
   { name: 'A sparkling kingdom', icon: <Sparkles className="w-8 h-8" /> },
-  { name: 'The far reaches of space', icon: <MilkyWay className="w-8 h-8" /> },
+  { name: 'The far reaches of space', icon: <Stars className="w-8 h-8" /> },
 ];
 
 
