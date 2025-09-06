@@ -26,10 +26,10 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
   const [pronunciation, setPronunciation] = useState('');
   const [isDefining, setIsDefining] = useState(false);
   const [isReadingDefinition, setIsReadingDefinition] = useState(false);
+  const [definitionAudioUrl, setDefinitionAudioUrl] = useState<string | null>(null);
   const definitionAudioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const cleanWord = word.replace(/[^a-zA-Z]/g, '');
-
 
   const handleWordClick = async () => {
     if (definition) return; // Don't re-fetch if we already have it
@@ -53,16 +53,23 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
   const handleReadDefinition = async (e: React.MouseEvent) => {
     e.stopPropagation(); // prevent popover from closing
     if (isReadingDefinition || !definition) return;
+    
+    const audio = definitionAudioRef.current;
+    if (audio && definitionAudioUrl) {
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+      return;
+    }
 
     setIsReadingDefinition(true);
     try {
       const textToRead = `${cleanWord}. ${definition}`;
       // NOTE: Using default voice for definitions for now.
       const result = await textToSpeech({ text: textToRead });
-      const audio = new Audio(result.media);
-      definitionAudioRef.current = audio;
-      audio.play();
-      audio.onended = () => setIsReadingDefinition(false);
+      setDefinitionAudioUrl(result.media); // Cache the audio URL
     } catch (error) {
       console.error('Failed to read definition:', error);
       toast({
@@ -73,6 +80,26 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
       setIsReadingDefinition(false);
     }
   }
+
+  // Effect for playing definition audio
+  useEffect(() => {
+    if (definitionAudioUrl) {
+      const audio = new Audio(definitionAudioUrl);
+      definitionAudioRef.current = audio;
+      audio.play();
+      const onPlay = () => setIsReadingDefinition(true);
+      const onPause = () => setIsReadingDefinition(false);
+      const onEnded = () => setIsReadingDefinition(false);
+      audio.addEventListener('play', onPlay);
+      audio.addEventListener('pause', onPause);
+      audio.addEventListener('ended', onEnded);
+      return () => {
+        audio.removeEventListener('play', onPlay);
+        audio.removeEventListener('pause', onPause);
+        audio.removeEventListener('ended', onEnded);
+      }
+    }
+  }, [definitionAudioUrl]);
 
   const hasLetters = /[a-zA-Z]/.test(word);
   if (!hasLetters) {
@@ -103,10 +130,10 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
                         variant="ghost"
                         size="icon"
                         onClick={handleReadDefinition}
-                        disabled={isReadingDefinition}
+                        disabled={isDefining}
                         className="flex-shrink-0 h-6 w-6"
                     >
-                        {isReadingDefinition ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
+                        {isReadingDefinition ? <Pause className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </Button>
                 </div>
             </div>
@@ -129,12 +156,12 @@ export default function StoryPage() {
   const [isGeneratingStoryAudio, setIsGeneratingStoryAudio] = useState(false);
   const [isStoryPlaying, setIsStoryPlaying] = useState(false);
   const [storyAudioUrl, setStoryAudioUrl] = useState<string | null>(null);
-  const storyAudioRef = useRef<HTMLAudioElement>(null);
+  const storyAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const [isGeneratingChoiceAudio, setIsGeneratingChoiceAudio] = useState(false);
   const [isChoicePlaying, setIsChoicePlaying] = useState(false);
   const [choiceAudioUrl, setChoiceAudioUrl] = useState<string | null>(null);
-  const choiceAudioRef = useRef<HTMLAudioElement>(null);
+  const choiceAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -187,10 +214,7 @@ export default function StoryPage() {
     if (audio) {
       const onPlay = () => setIsStoryPlaying(true);
       const onPause = () => setIsStoryPlaying(false);
-      const onEnded = () => {
-        setIsStoryPlaying(false);
-        setStoryAudioUrl(null);
-      };
+      const onEnded = () => setIsStoryPlaying(false);
       audio.addEventListener('play', onPlay);
       audio.addEventListener('pause', onPause);
       audio.addEventListener('ended', onEnded);
@@ -208,10 +232,7 @@ export default function StoryPage() {
     if (audio) {
       const onPlay = () => setIsChoicePlaying(true);
       const onPause = () => setIsChoicePlaying(false);
-      const onEnded = () => {
-        setIsChoicePlaying(false);
-        setChoiceAudioUrl(null);
-      };
+      const onEnded = () => setIsChoicePlaying(false);
       audio.addEventListener('play', onPlay);
       audio.addEventListener('pause', onPause);
       audio.addEventListener('ended', onEnded);
@@ -231,16 +252,14 @@ export default function StoryPage() {
     if (choiceAudioRef.current) {
         choiceAudioRef.current.pause();
     }
-    setStoryAudioUrl(null);
-    setChoiceAudioUrl(null);
-    setIsStoryPlaying(false);
-    setIsChoicePlaying(false);
   }
 
   const handleChoice = async (choice: string) => {
     if (!story || !choice.trim()) return;
 
     stopAllAudio();
+    setStoryAudioUrl(null);
+    setChoiceAudioUrl(null);
     
     setLoadingAI(true);
     setCustomChoice('');
@@ -352,14 +371,18 @@ export default function StoryPage() {
   };
   
   useEffect(() => {
-    if (storyAudioUrl && storyAudioRef.current) {
-        storyAudioRef.current.play();
+    if (storyAudioUrl && storyAudioRef.current?.src !== storyAudioUrl) {
+        const audio = new Audio(storyAudioUrl);
+        storyAudioRef.current = audio;
+        audio.play();
     }
   }, [storyAudioUrl]);
 
   useEffect(() => {
-    if (choiceAudioUrl && choiceAudioRef.current) {
-        choiceAudioRef.current.play();
+    if (choiceAudioUrl && choiceAudioRef.current?.src !== choiceAudioUrl) {
+        const audio = new Audio(choiceAudioUrl);
+        choiceAudioRef.current = audio;
+        audio.play();
     }
   }, [choiceAudioUrl]);
 
@@ -490,8 +513,8 @@ export default function StoryPage() {
             )}
         </div>
       </main>
-      {storyAudioUrl && <audio ref={storyAudioRef} src={storyAudioUrl} />}
-      {choiceAudioUrl && <audio ref={choiceAudioRef} src={choiceAudioUrl} />}
     </div>
   );
 }
+
+  
