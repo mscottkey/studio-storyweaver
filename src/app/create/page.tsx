@@ -112,13 +112,30 @@ export default function CreateStoryPage() {
     form.trigger(field);
   };
 
+  const handleThemeChange = (newTheme: string) => {
+    form.setValue('theme', newTheme, { 
+      shouldValidate: true, 
+      shouldDirty: true, 
+      shouldTouch: true 
+    });
+    setTheme(newTheme);
+  };
+
   const handleProfileSelect = (profile: Profile) => {
     setSelectedProfile(profile);
   };
 
   const handleProfileChange = () => {
     setSelectedProfile(null);
-    form.reset();
+    form.reset({
+      hero: '',
+      setting: '',
+      age: 7,
+      readingLevel: 3,
+      theme: 'light',
+      voice: 'Rachel',
+    });
+    setTheme('light');
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -326,6 +343,31 @@ export default function CreateStoryPage() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Optional Theme Selection */}
+                <div className="space-y-4">
+                  <Label className="text-lg font-semibold">Choose a theme (optional)</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { name: 'Knight Adventure', theme: 'theme-knight', icon: <Shield className="w-6 h-6" /> },
+                      { name: 'Pirate Tales', theme: 'theme-pirate', icon: <Anchor className="w-6 h-6" /> },
+                      { name: 'Princess Stories', theme: 'theme-princess', icon: <Castle className="w-6 h-6" /> },
+                      { name: 'Space Adventure', theme: 'theme-space', icon: <Rocket className="w-6 h-6" /> },
+                    ].map((themeOption) => (
+                      <Card 
+                        key={themeOption.theme}
+                        onClick={() => handleThemeChange(themeOption.theme)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-3 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-all duration-200 hover:scale-105 transform",
+                          form.watch('theme') === themeOption.theme && "bg-secondary text-secondary-foreground border-primary"
+                        )}
+                      >
+                        {themeOption.icon}
+                        <span className="mt-1 text-xs text-center font-medium">{themeOption.name}</span>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Hidden fields for age and reading level from profile */}
