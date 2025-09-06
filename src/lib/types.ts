@@ -14,4 +14,12 @@ export interface Story {
   updatedAt: string;
   readingLevel?: number;
   age?: number;
+  profileId?: string;
+}
+
+export interface Profile {
+  id: string;
+  name: string;
+  age: number;
+  readingLevel: number;
 }
