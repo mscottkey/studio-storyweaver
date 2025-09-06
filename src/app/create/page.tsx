@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2, Shield, Anchor, Castle, Rocket, Trees, Palmtree, Stars, Sparkles, User, Pencil } from 'lucide-react';
 import { AppHeader } from '@/components/header';
-import { getReadingLevelLabel, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
 
@@ -93,22 +94,14 @@ export default function CreateStoryPage() {
   }, [selectedProfile, form, setTheme]);
 
   const handlePresetClick = (field: 'hero' | 'setting', value: string, theme?: string) => {
-    form.setValue(field, value, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true
-    });
+    form.setValue(field, value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     if (theme) {
       handleThemeChange(theme);
     }
   };
 
   const handleThemeChange = (newTheme: string) => {
-    form.setValue('theme', newTheme, { 
-      shouldValidate: true, 
-      shouldDirty: true, 
-      shouldTouch: true 
-    });
+    form.setValue('theme', newTheme, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     setTheme(newTheme);
   };
 
@@ -440,4 +433,5 @@ export default function CreateStoryPage() {
     </div>
   );
 }
+
     
