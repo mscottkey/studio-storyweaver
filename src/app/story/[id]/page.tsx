@@ -1,22 +1,69 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { Story, StoryChapter } from '@/lib/types';
 import { generateNextStoryChapter } from '@/ai/flows/generate-next-story-chapter';
 import { textToSpeech } from '@/ai/flows/text-to-speech';
+import { getWordDefinition } from '@/ai/flows/get-word-definition';
 import { useToast } from '@/hooks/use-toast';
 import { AppHeader } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, BookOpen, Sparkles, Volume2, Pause, Play } from 'lucide-react';
+import { Loader2, BookOpen, Sparkles, Volume2, Pause, Play, HelpCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const STORY_STORAGE_KEY = 'storyweaver-stories';
+
+const Word = ({ word, context, age }: { word: string; context: string; age?: number }) => {
+  const [definition, setDefinition] = useState('');
+  const [isDefining, setIsDefining] = useState(false);
+  const { toast } = useToast();
+
+  const handleWordClick = async () => {
+    if (definition) return; // Don't re-fetch if we already have it
+    setIsDefining(true);
+    try {
+      const result = await getWordDefinition({ word, context, age });
+      setDefinition(result.definition);
+    } catch (error) {
+      console.error('Failed to get definition:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Wizard is stumped!',
+        description: 'Could not get a definition for that word.',
+      });
+    } finally {
+      setIsDefining(false);
+    }
+  };
+
+  // Regular expression to check if the word contains any letters.
+  const hasLetters = /[a-zA-Z]/.test(word);
+  if (!hasLetters) {
+    return <span>{word}</span>;
+  }
+  
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <span onClick={handleWordClick} className="underline decoration-dotted cursor-pointer hover:text-accent">
+          {word}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent>
+        {isDefining && <div className='flex items-center gap-2'><Loader2 className="h-4 w-4 animate-spin"/> Thinking...</div>}
+        {definition && <p>{definition}</p>}
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 
 export default function StoryPage() {
   const params = useParams();
@@ -164,7 +211,7 @@ export default function StoryPage() {
       toast({
         variant: 'destructive',
         title: 'The bards are taking a break...',
-        description: 'The audio service is currently busy. Please try again in a moment.',
+        description: 'The audio service is temporarily unavailable. Please try again in a moment.',
       });
     } finally {
       setIsGeneratingAudio(false);
@@ -235,7 +282,11 @@ export default function StoryPage() {
                     {index > 0 && (
                       <Badge variant="secondary" className="mb-2 italic">Your choice: {chapter.choiceMade}</Badge>
                     )}
-                    <p className="whitespace-pre-wrap">{chapter.chapterText}</p>
+                    <p className="whitespace-pre-wrap">
+                      {chapter.chapterText.split(/(\s+)/).map((word, i) => (
+                          <Word key={i} word={word} context={chapter.chapterText} age={story.age} />
+                      ))}
+                    </p>
                   </div>
                 ))}
                  {loadingAI && (
