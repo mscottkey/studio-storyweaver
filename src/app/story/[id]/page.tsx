@@ -4,15 +4,17 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { Story, StoryChapter } from '@/lib/types';
 import { generateNextStoryChapter } from '@/ai/flows/generate-next-story-chapter';
+import { textToSpeech } from '@/ai/flows/text-to-speech';
 import { useToast } from '@/hooks/use-toast';
 import { AppHeader } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, BookOpen, Sparkles } from 'lucide-react';
+import { Loader2, BookOpen, Sparkles, Volume2, Pause, Play } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const STORY_STORAGE_KEY = 'storyweaver-stories';
 
@@ -23,6 +25,11 @@ export default function StoryPage() {
   const [story, setStory] = useState<Story | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [customChoice, setCustomChoice] = useState('');
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState('Algenib');
+  const audioRef = useRef<HTMLAudioElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,9 +68,28 @@ export default function StoryPage() {
     }
   }, [story?.chapters.length]);
 
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.onplay = () => setIsPlaying(true);
+      audio.onpause = () => setIsPlaying(false);
+      audio.onended = () => {
+        setIsPlaying(false);
+        setAudioUrl(null); // Clear audio so it can be re-generated
+      };
+    }
+  }, [audioUrl]);
+
   const handleChoice = async (choice: string) => {
     if (!story || !choice.trim()) return;
 
+    // Stop any playing audio before proceeding
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
+    setAudioUrl(null);
+    setIsPlaying(false);
+    
     setLoadingAI(true);
     setCustomChoice('');
     try {
@@ -93,7 +119,6 @@ export default function StoryPage() {
 
       setStory(updatedStory);
 
-      // Persist to localStorage
       const existingStories: Story[] = JSON.parse(localStorage.getItem(STORY_STORAGE_KEY) || '[]');
       const storyIndex = existingStories.findIndex(s => s.id === story.id);
       if (storyIndex > -1) {
@@ -112,6 +137,44 @@ export default function StoryPage() {
     }
   };
 
+  const handlePlayAudio = async () => {
+    const audio = audioRef.current;
+    if (audio && audioUrl) {
+      if (isPlaying) {
+        audio.pause();
+      } else {
+        audio.play();
+      }
+      return;
+    }
+
+    if (!story || isGeneratingAudio) return;
+    
+    setIsGeneratingAudio(true);
+    try {
+      const lastChapter = story.chapters[story.chapters.length - 1];
+      const textToRead = `${lastChapter.chapterText}\n\nWhat would you like to do next?\n\nChoice 1: ${story.currentChoices[0]}\n\nChoice 2: ${story.currentChoices[1]}`;
+
+      const result = await textToSpeech({ text: textToRead, voice: selectedVoice });
+      setAudioUrl(result.media);
+    } catch (error) {
+      console.error('Failed to generate audio:', error);
+      toast({
+        variant: 'destructive',
+        title: 'The bards are tuning their lutes...',
+        description: 'We had trouble generating the audio. Please try again.',
+      });
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+  
+  useEffect(() => {
+    if (audioUrl && audioRef.current) {
+        audioRef.current.play();
+    }
+  }, [audioUrl]);
+
   if (!story) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -120,17 +183,46 @@ export default function StoryPage() {
     );
   }
 
+  const voices = ["Algenib", "Achernar", "Canopus", "Sirius", "Rigel", "Vega"];
+
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
       <AppHeader />
       <main className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 gap-6 overflow-hidden">
         <Card className="flex-grow flex flex-col overflow-hidden shadow-lg">
           <CardHeader>
-            <CardTitle className="font-headline text-2xl md:text-3xl text-primary flex items-center gap-2">
-              <BookOpen />
-              The Tale of {story.hero}
-            </CardTitle>
-            <CardDescription>in the land of {story.setting}</CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="font-headline text-2xl md:text-3xl text-primary flex items-center gap-2">
+                  <BookOpen />
+                  The Tale of {story.hero}
+                </CardTitle>
+                <CardDescription>in the land of {story.setting}</CardDescription>
+              </div>
+              <div className='flex items-center gap-2'>
+                <Button
+                    onClick={handlePlayAudio}
+                    disabled={isGeneratingAudio || loadingAI}
+                    variant="outline"
+                    size="icon"
+                    aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+                    >
+                    {isGeneratingAudio ? <Loader2 className="h-5 w-5 animate-spin" /> : isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                </Button>
+                <div className='w-40'>
+                    <Select value={selectedVoice} onValueChange={setSelectedVoice} disabled={isGeneratingAudio || isPlaying}>
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {voices.map(voice => (
+                                <SelectItem key={voice} value={voice}>{voice}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <Separator />
           <CardContent className="flex-grow p-0 overflow-hidden">
@@ -203,6 +295,7 @@ export default function StoryPage() {
             )}
         </div>
       </main>
+      {audioUrl && <audio ref={audioRef} src={audioUrl} />}
     </div>
   );
 }
