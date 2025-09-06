@@ -28,7 +28,7 @@ export default function StoryPage() {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [selectedVoice, setSelectedVoice] = useState('algenib');
+  const [selectedVoice, setSelectedVoice] = useState('Rachel');
   const audioRef = useRef<HTMLAudioElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -183,7 +183,7 @@ export default function StoryPage() {
     );
   }
 
-  const voices = ["achernar", "achird", "algenib", "algieba", "alnilam", "aoede", "autonoe", "callirrhoe", "charon", "despina", "enceladus", "erinome", "fenrir", "gacrux", "iapetus", "kore", "laomedeia", "leda", "orus", "puck", "pulcherrima", "rasalgethi", "sadachbia", "sadaltager", "schedar", "sulafat", "umbriel", "vindemiatrix", "zephyr", "zubenelgenubi"];
+  const voices = ["Rachel", "Adam", "Antoni", "Bella", "Domi", "Elli"];
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
