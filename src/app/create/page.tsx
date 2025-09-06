@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -63,6 +62,7 @@ export default function CreateStoryPage() {
       setProfiles(storedProfiles);
     } catch (error) {
       console.error("Failed to load profiles", error);
+      setProfiles([]);
     }
   }, []);
 
@@ -94,14 +94,43 @@ export default function CreateStoryPage() {
   }, [selectedProfile, form, setTheme]);
 
   const handlePresetClick = (field: 'hero' | 'setting', value: string, theme?: string) => {
-    form.setValue(field, value);
+    form.setValue(field, value, { 
+      shouldValidate: true, 
+      shouldDirty: true, 
+      shouldTouch: true 
+    });
+    
     if (theme) {
-        form.setValue('theme', theme);
-        setTheme(theme);
+      form.setValue('theme', theme, { 
+        shouldValidate: true, 
+        shouldDirty: true, 
+        shouldTouch: true 
+      });
+      setTheme(theme);
     }
-  }
+    
+    form.trigger(field);
+  };
+
+  const handleProfileSelect = (profile: Profile) => {
+    setSelectedProfile(profile);
+  };
+
+  const handleProfileChange = () => {
+    setSelectedProfile(null);
+    form.reset();
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!values.hero.trim() || !values.setting.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing information',
+        description: 'Please select or enter both a hero and a setting for your story.',
+      });
+      return;
+    }
+
     setIsWeaving(true);
     try {
       const initialStory = await ensureHeroAndSettingInclusion({
@@ -149,10 +178,12 @@ export default function CreateStoryPage() {
         title: 'Oh no, a dragon blocked the path!',
         description: 'We had trouble starting your story. Please try again.',
       });
+    } finally {
       setIsWeaving(false);
     }
   }
 
+  // Profile selection screen
   if (!selectedProfile) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -163,36 +194,46 @@ export default function CreateStoryPage() {
               <CardTitle className="font-headline text-3xl text-primary">Who is this story for?</CardTitle>
               <CardDescription>Select a profile to begin a new adventure.</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {profiles.map(profile => (
-                <Card 
-                  key={profile.id}
-                  onClick={() => setSelectedProfile(profile)}
-                  className="flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
-                >
-                  <User className="w-12 h-12 mb-2" />
-                  <span className="font-semibold">{profile.name}</span>
-                </Card>
-              ))}
-               <Card 
-                  onClick={() => router.push('/settings')}
-                  className="flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors border-dashed"
-                >
-                  <Pencil className="w-12 h-12 mb-2" />
-                  <span className="font-semibold">Manage Profiles</span>
-                </Card>
+            <CardContent>
+              {profiles.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {profiles.map(profile => (
+                    <Card 
+                      key={profile.id}
+                      onClick={() => handleProfileSelect(profile)}
+                      className="flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors hover:scale-105 transform duration-200"
+                    >
+                      <User className="w-12 h-12 mb-2" />
+                      <span className="font-semibold text-center">{profile.name}</span>
+                      <span className="text-xs text-muted-foreground">Age {profile.age}</span>
+                    </Card>
+                  ))}
+                  <Card 
+                    onClick={() => router.push('/settings')}
+                    className="flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors border-dashed hover:scale-105 transform duration-200"
+                  >
+                    <Pencil className="w-12 h-12 mb-2" />
+                    <span className="font-semibold text-center">Manage Profiles</span>
+                  </Card>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <User className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">No profiles found.</p>
+                  <Button onClick={() => router.push('/settings')}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Create Your First Profile
+                  </Button>
+                </div>
+              )}
             </CardContent>
-             {profiles.length === 0 && (
-                <CardFooter>
-                    <p className="text-sm text-muted-foreground">No profiles found. <Link href="/settings" className="underline">Create one</Link> to get started.</p>
-                </CardFooter>
-            )}
           </Card>
         </main>
       </div>
     );
   }
 
+  // Story creation form
   return (
     <div className="flex flex-col min-h-screen">
       <AppHeader />
@@ -204,88 +245,153 @@ export default function CreateStoryPage() {
                 <CardTitle className="font-headline text-3xl text-primary">Let's Begin, {selectedProfile.name}!</CardTitle>
                 <CardDescription>Choose a hero and a setting, or create your own!</CardDescription>
               </div>
-              <Button variant="ghost" onClick={() => setSelectedProfile(null)}>
+              <Button variant="ghost" onClick={handleProfileChange}>
                 <User className="mr-2 h-4 w-4"/> Change Profile
               </Button>
             </div>
           </CardHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
               <CardContent className="space-y-8">
                 
                 {/* Hero Selection */}
                 <div className="space-y-4">
-                    <Label className="text-lg font-semibold">Who is the hero?</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {heroPresets.map((preset) => (
-                            <Card 
-                                key={preset.name}
-                                onClick={() => handlePresetClick('hero', preset.name, preset.theme)}
-                                className={cn(
-                                    "flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors",
-                                    form.watch('hero') === preset.name && "bg-primary text-primary-foreground",
-                                    selectedProfile.preferredThemes?.includes(preset.theme) && "ring-2 ring-accent"
-                                )}
-                            >
-                                {preset.icon}
-                                <span className="mt-2 text-sm text-center">{preset.name}</span>
-                            </Card>
-                        ))}
-                    </div>
-                     <FormField
-                        control={form.control}
-                        name="hero"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormControl>
-                                <Input placeholder="Or type your own hero..." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
+                  <Label className="text-lg font-semibold">Who is the hero?</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {heroPresets.map((preset) => (
+                      <Card 
+                        key={preset.name}
+                        onClick={() => handlePresetClick('hero', preset.name, preset.theme)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-all duration-200 hover:scale-105 transform",
+                          form.watch('hero') === preset.name && "bg-primary text-primary-foreground hover:bg-primary/90",
+                          selectedProfile.preferredThemes?.includes(preset.theme) && "ring-2 ring-accent"
                         )}
-                        />
+                      >
+                        {preset.icon}
+                        <span className="mt-2 text-sm text-center font-medium">{preset.name}</span>
+                      </Card>
+                    ))}
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="hero"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input 
+                            placeholder="Or type your own hero..." 
+                            {...field}
+                            className="text-base"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 
                 {/* Setting Selection */}
                 <div className="space-y-4">
-                    <Label className="text-lg font-semibold">Where does the story take place?</Label>
-                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {settingPresets.map((preset) => (
-                            <Card 
-                                key={preset.name}
-                                onClick={() => handlePresetClick('setting', preset.name, preset.theme)}
-                                className={cn(
-                                    "flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors",
-                                    form.watch('setting') === preset.name && "bg-primary text-primary-foreground",
-                                    selectedProfile.preferredThemes?.includes(preset.theme) && "ring-2 ring-accent"
-                                )}
-                            >
-                                {preset.icon}
-                                <span className="mt-2 text-sm text-center">{preset.name}</span>
-                            </Card>
-                        ))}
-                    </div>
-                    <FormField
+                  <Label className="text-lg font-semibold">Where does the story take place?</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {settingPresets.map((preset) => (
+                      <Card 
+                        key={preset.name}
+                        onClick={() => handlePresetClick('setting', preset.name, preset.theme)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-all duration-200 hover:scale-105 transform",
+                          form.watch('setting') === preset.name && "bg-primary text-primary-foreground hover:bg-primary/90",
+                          selectedProfile.preferredThemes?.includes(preset.theme) && "ring-2 ring-accent"
+                        )}
+                      >
+                        {preset.icon}
+                        <span className="mt-2 text-sm text-center font-medium">{preset.name}</span>
+                      </Card>
+                    ))}
+                  </div>
+                  <FormField
                     control={form.control}
                     name="setting"
                     render={({ field }) => (
-                        <FormItem>
+                      <FormItem>
                         <FormControl>
-                            <Textarea placeholder="Or describe your own setting..." {...field} />
+                          <Textarea 
+                            placeholder="Or describe your own setting..." 
+                            {...field}
+                            className="min-h-[80px] text-base"
+                          />
                         </FormControl>
                         <FormMessage />
-                        </FormItem>
+                      </FormItem>
                     )}
-                    />
+                  />
                 </div>
 
-                {/* Age and Reading Level (now hidden, from profile) */}
-                <FormField control={form.control} name="age" render={({ field }) => <FormItem><FormControl><Input type="hidden" {...field} /></FormControl></FormItem>} />
-                <FormField control={form.control} name="readingLevel" render={({ field }) => <FormItem><FormControl><Input type="hidden" {...field} /></FormControl></FormItem>} />
+                {/* Hidden fields for age and reading level from profile */}
+                <FormField 
+                  control={form.control} 
+                  name="age" 
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input type="hidden" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )} 
+                />
+                <FormField 
+                  control={form.control} 
+                  name="readingLevel" 
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input type="hidden" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )} 
+                />
+                <FormField 
+                  control={form.control} 
+                  name="theme" 
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input type="hidden" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )} 
+                />
+                <FormField 
+                  control={form.control} 
+                  name="voice" 
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input type="hidden" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )} 
+                />
+                <FormField 
+                  control={form.control} 
+                  name="profileId" 
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input type="hidden" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )} 
+                />
 
               </CardContent>
               <CardFooter>
-                <Button type="submit" disabled={isWeaving} className="w-full font-bold text-lg">
+                <Button 
+                  type="submit" 
+                  disabled={isWeaving || !form.watch('hero') || !form.watch('setting')} 
+                  className="w-full font-bold text-lg py-6"
+                >
                   {isWeaving ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   ) : (
