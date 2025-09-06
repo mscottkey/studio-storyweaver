@@ -28,7 +28,7 @@ export default function StoryPage() {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [selectedVoice, setSelectedVoice] = useState('Algenib');
+  const [selectedVoice, setSelectedVoice] = useState('algenib');
   const audioRef = useRef<HTMLAudioElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -183,7 +183,7 @@ export default function StoryPage() {
     );
   }
 
-  const voices = ["Algenib", "Achernar", "Canopus", "Sirius", "Rigel", "Vega"];
+  const voices = ["algenib", "achernar", "achird", "algieba", "alnilam", "aoede", "autonoe", "callirrhoe", "charon", "despina", "enceladus", "erinome", "fenrir", "gacrux", "iapetus", "kore", "laomedeia", "leda", "orus", "puck", "pulcherrima", "rasalgethi", "sadachbia", "sadaltager", "schedar", "sulafat", "umbriel", "vindemiatrix", "zephyr", "zubenelgenubi"];
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
@@ -216,7 +216,7 @@ export default function StoryPage() {
                         </SelectTrigger>
                         <SelectContent>
                             {voices.map(voice => (
-                                <SelectItem key={voice} value={voice}>{voice}</SelectItem>
+                                <SelectItem key={voice} value={voice} className="capitalize">{voice}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -299,3 +299,5 @@ export default function StoryPage() {
     </div>
   );
 }
+
+    
