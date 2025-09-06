@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -20,6 +21,7 @@ export type GetWordDefinitionInput = z.infer<typeof GetWordDefinitionInputSchema
 
 const GetWordDefinitionOutputSchema = z.object({
   definition: z.string().describe('A simple, kid-friendly definition of the word.'),
+  pronunciation: z.string().describe('A simple, phonetic pronunciation of the word (e.g., "dy-no-sore").'),
 });
 export type GetWordDefinitionOutput = z.infer<typeof GetWordDefinitionOutputSchema>;
 
@@ -38,6 +40,8 @@ A {{age}}-year-old child has asked for the definition of the word "{{word}}".
 The word appeared in the following context: "{{context}}"
 
 Provide a very short and simple definition of the word "{{word}}" that a {{age}}-year-old child can easily understand.
+Also provide a simple, kid-friendly phonetic pronunciation for the word. For example: "dinosaur (dy-no-sore)".
+
 Do not use the word "{{word}}" in the definition itself.
 The definition should be no more than one or two simple sentences.
 `,
