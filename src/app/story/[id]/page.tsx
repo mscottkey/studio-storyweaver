@@ -10,8 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, BookOpen } from 'lucide-react';
+import { Loader2, BookOpen, Sparkles } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 
 const STORY_STORAGE_KEY = 'storyweaver-stories';
 
@@ -21,6 +22,7 @@ export default function StoryPage() {
   const { toast } = useToast();
   const [story, setStory] = useState<Story | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [customChoice, setCustomChoice] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,9 +62,10 @@ export default function StoryPage() {
   }, [story?.chapters.length]);
 
   const handleChoice = async (choice: string) => {
-    if (!story) return;
+    if (!story || !choice.trim()) return;
 
     setLoadingAI(true);
+    setCustomChoice('');
     try {
       const previousStory = story.chapters
         .map(c => `Choice: ${c.choiceMade}\n${c.chapterText}`)
@@ -141,6 +144,11 @@ export default function StoryPage() {
                     <p className="whitespace-pre-wrap">{chapter.chapterText}</p>
                   </div>
                 ))}
+                 {loadingAI && (
+                    <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                )}
               </div>
             </ScrollArea>
           </CardContent>
@@ -158,7 +166,6 @@ export default function StoryPage() {
                   className="h-auto py-3 text-base"
                   variant={index === 0 ? 'default' : 'secondary'}
                 >
-                  {loadingAI ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
                   <span className="whitespace-normal text-center">{choice}</span>
                 </Button>
               ))
@@ -166,6 +173,34 @@ export default function StoryPage() {
                 <p className="text-center md:col-span-2 text-muted-foreground italic">...and the story comes to a close. For now.</p>
             )}
           </div>
+            {story.currentChoices.length > 0 && (
+                <>
+                    <Separator className="my-6" />
+                    <div className="relative text-center">
+                        <span className="bg-background px-2 text-sm text-muted-foreground">Or, write your own path... (Premium)</span>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                        <Input
+                            placeholder="What do you do?"
+                            value={customChoice}
+                            onChange={(e) => setCustomChoice(e.target.value)}
+                            disabled={loadingAI}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleChoice(customChoice);
+                              }
+                            }}
+                        />
+                        <Button
+                            onClick={() => handleChoice(customChoice)}
+                            disabled={loadingAI || !customChoice.trim()}
+                            aria-label="Submit custom choice"
+                        >
+                            <Sparkles className="h-5 w-5" />
+                        </Button>
+                    </div>
+                </>
+            )}
         </div>
       </main>
     </div>
