@@ -13,13 +13,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { AppHeader } from '@/components/header';
-import { UserPlus, Trash2, Edit, X, Check } from 'lucide-react';
-import { getReadingLevelLabel } from '@/lib/utils';
+import { UserPlus, Trash2, Edit, X, Check, Shield, Anchor, Castle, Rocket, Trees, Palmtree, Sparkles, Stars } from 'lucide-react';
+import { getReadingLevelLabel, cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+
+const availableThemes = [
+    { id: 'theme-knight', name: 'Knight', icon: <Shield/> },
+    { id: 'theme-pirate', name: 'Pirate', icon: <Anchor/> },
+    { id: 'theme-princess', name: 'Princess', icon: <Castle/> },
+    { id: 'theme-space', name: 'Space', icon: <Rocket/> },
+    { id: 'theme-forest', name: 'Forest', icon: <Trees/> },
+]
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.').max(50),
   age: z.number().min(3).max(12),
   readingLevel: z.number().min(1).max(5),
+  preferredThemes: z.array(z.string()).optional(),
 });
 
 const PROFILE_STORAGE_KEY = 'storyweaver-profiles';
@@ -50,6 +61,7 @@ export default function SettingsPage() {
       name: '',
       age: 7,
       readingLevel: 3,
+      preferredThemes: [],
     },
   });
 
@@ -66,7 +78,7 @@ export default function SettingsPage() {
     setProfiles(updatedProfiles);
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfiles));
     toast({ title: 'Profile added!', description: `${values.name} is ready for an adventure.` });
-    form.reset({ name: '', age: 7, readingLevel: 3 });
+    form.reset({ name: '', age: 7, readingLevel: 3, preferredThemes: [] });
     setIsAdding(false);
   };
 
@@ -91,9 +103,61 @@ export default function SettingsPage() {
     editingForm.reset({
         name: profile.name,
         age: profile.age,
-        readingLevel: profile.readingLevel
+        readingLevel: profile.readingLevel,
+        preferredThemes: profile.preferredThemes || [],
     });
   }
+  
+  const renderThemeSelector = (formInstance: any) => (
+     <FormField
+        control={formInstance.control}
+        name="preferredThemes"
+        render={() => (
+            <FormItem>
+            <div className="mb-4">
+                <FormLabel className="text-base">Preferred Themes</FormLabel>
+                <p className="text-sm text-muted-foreground">Select themes your child enjoys.</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {availableThemes.map((theme) => (
+                <FormField
+                    key={theme.id}
+                    control={formInstance.control}
+                    name="preferredThemes"
+                    render={({ field }) => {
+                    return (
+                        <FormItem
+                        key={theme.id}
+                        className="flex flex-row items-start space-x-3 space-y-0"
+                        >
+                        <FormControl>
+                            <Checkbox
+                            checked={field.value?.includes(theme.id)}
+                            onCheckedChange={(checked) => {
+                                return checked
+                                ? field.onChange([...(field.value || []), theme.id])
+                                : field.onChange(
+                                    (field.value || []).filter(
+                                    (value: string) => value !== theme.id
+                                    )
+                                )
+                            }}
+                            />
+                        </FormControl>
+                        <FormLabel className="font-normal flex items-center gap-2">
+                           {theme.icon} {theme.name}
+                        </FormLabel>
+                        </FormItem>
+                    )
+                    }}
+                />
+                ))}
+            </div>
+            <FormMessage />
+            </FormItem>
+        )}
+    />
+  )
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -103,7 +167,7 @@ export default function SettingsPage() {
           <div className="flex justify-between items-center mb-6">
             <h1 className="font-headline text-3xl text-primary">Child Profiles</h1>
             {!isAdding && (
-              <Button onClick={() => setIsAdding(true)}>
+              <Button onClick={() => { setIsAdding(true); form.reset({ name: '', age: 7, readingLevel: 3, preferredThemes: [] }); }}>
                 <UserPlus className="mr-2" />
                 Add Profile
               </Button>
@@ -118,7 +182,7 @@ export default function SettingsPage() {
                             <CardTitle>Add a New Reader</CardTitle>
                             <CardDescription>Create a profile for a new adventurer.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Name</FormLabel>
@@ -126,22 +190,25 @@ export default function SettingsPage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                             <FormField control={form.control} name="age" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Age: {field.value}</FormLabel>
-                                    <FormControl>
-                                    <Slider min={3} max={12} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
-                                    </FormControl>
-                                </FormItem>
-                            )} />
-                             <FormField control={form.control} name="readingLevel" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Reading Level: {getReadingLevelLabel(field.value)}</FormLabel>
-                                    <FormControl>
-                                        <Slider min={1} max={5} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
-                                    </FormControl>
-                                </FormItem>
-                            )} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField control={form.control} name="age" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Age: {field.value}</FormLabel>
+                                        <FormControl>
+                                        <Slider min={3} max={12} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                                        </FormControl>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="readingLevel" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Reading Level: {getReadingLevelLabel(field.value)}</FormLabel>
+                                        <FormControl>
+                                            <Slider min={1} max={5} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                                        </FormControl>
+                                    </FormItem>
+                                )} />
+                            </div>
+                            {renderThemeSelector(form)}
                         </CardContent>
                         <CardFooter className="justify-end gap-2">
                             <Button variant="ghost" onClick={() => setIsAdding(false)}>Cancel</Button>
@@ -167,23 +234,26 @@ export default function SettingsPage() {
                                         </FormItem>
                                     )} />
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                     <FormField control={editingForm.control} name="age" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Age: {field.value}</FormLabel>
-                                            <FormControl>
-                                            <Slider min={3} max={12} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )} />
-                                     <FormField control={editingForm.control} name="readingLevel" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Reading Level: {getReadingLevelLabel(field.value)}</FormLabel>
-                                            <FormControl>
-                                                <Slider min={1} max={5} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )} />
+                                <CardContent className="space-y-6">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <FormField control={editingForm.control} name="age" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Age: {field.value}</FormLabel>
+                                                <FormControl>
+                                                <Slider min={3} max={12} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={editingForm.control} name="readingLevel" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Reading Level: {getReadingLevelLabel(field.value)}</FormLabel>
+                                                <FormControl>
+                                                    <Slider min={1} max={5} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )} />
+                                     </div>
+                                     {renderThemeSelector(editingForm)}
                                 </CardContent>
                                 <CardFooter className="justify-end gap-2">
                                     <Button variant="ghost" size="icon" onClick={() => setEditingId(null)}><X className="h-4 w-4"/></Button>
@@ -198,6 +268,14 @@ export default function SettingsPage() {
                             <CardTitle>{profile.name}</CardTitle>
                             <CardDescription>Age: {profile.age} | Reading Level: {getReadingLevelLabel(profile.readingLevel)}</CardDescription>
                         </CardHeader>
+                        <CardContent>
+                           <div className="flex flex-wrap gap-2">
+                                {profile.preferredThemes && profile.preferredThemes.map(themeId => {
+                                    const theme = availableThemes.find(t => t.id === themeId);
+                                    return theme ? <Badge key={themeId} variant="secondary">{theme.name}</Badge> : null;
+                                })}
+                            </div>
+                        </CardContent>
                         <CardFooter className="justify-end gap-2">
                             <Button variant="outline" size="icon" onClick={() => startEditing(profile)}><Edit className="h-4 w-4"/></Button>
                             <Button variant="destructive" size="icon" onClick={() => handleDeleteProfile(profile.id)}><Trash2 className="h-4 w-4"/></Button>

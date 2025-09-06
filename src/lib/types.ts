@@ -23,4 +23,5 @@ export interface Profile {
   name: string;
   age: number;
   readingLevel: number;
+  preferredThemes?: string[];
 }
