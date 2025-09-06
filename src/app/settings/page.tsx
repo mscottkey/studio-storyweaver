@@ -13,10 +13,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { AppHeader } from '@/components/header';
-import { UserPlus, Trash2, Edit, X, Check, Shield, Anchor, Castle, Rocket, Trees, Palmtree, Sparkles, Stars } from 'lucide-react';
+import { UserPlus, Trash2, Edit, X, Check, Shield, Anchor, Castle, Rocket, Trees } from 'lucide-react';
 import { getReadingLevelLabel, cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const availableThemes = [
     { id: 'theme-knight', name: 'Knight', icon: <Shield/> },
@@ -26,11 +27,21 @@ const availableThemes = [
     { id: 'theme-forest', name: 'Forest', icon: <Trees/> },
 ]
 
+const availableVoices = [
+    { id: 'Rachel', name: 'Narrator (Female)' },
+    { id: 'Adam', name: 'Narrator (Male)' },
+    { id: 'Antoni', name: 'Storyteller (Male)' },
+    { id: 'Bella', name: 'Storyteller (Female)' },
+    { id: 'Domi', name: 'Animator (Female)' },
+    { id: 'Elli', name: 'Child (Female)' },
+]
+
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.').max(50),
   age: z.number().min(3).max(12),
   readingLevel: z.number().min(1).max(5),
   preferredThemes: z.array(z.string()).optional(),
+  voice: z.string().optional(),
 });
 
 const PROFILE_STORAGE_KEY = 'storyweaver-profiles';
@@ -62,6 +73,7 @@ export default function SettingsPage() {
       age: 7,
       readingLevel: 3,
       preferredThemes: [],
+      voice: 'Rachel',
     },
   });
 
@@ -78,7 +90,7 @@ export default function SettingsPage() {
     setProfiles(updatedProfiles);
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfiles));
     toast({ title: 'Profile added!', description: `${values.name} is ready for an adventure.` });
-    form.reset({ name: '', age: 7, readingLevel: 3, preferredThemes: [] });
+    form.reset({ name: '', age: 7, readingLevel: 3, preferredThemes: [], voice: 'Rachel' });
     setIsAdding(false);
   };
 
@@ -105,6 +117,7 @@ export default function SettingsPage() {
         age: profile.age,
         readingLevel: profile.readingLevel,
         preferredThemes: profile.preferredThemes || [],
+        voice: profile.voice || 'Rachel',
     });
   }
   
@@ -159,6 +172,31 @@ export default function SettingsPage() {
     />
   )
 
+  const renderVoiceSelector = (formInstance: any) => (
+    <FormField
+        control={formInstance.control}
+        name="voice"
+        render={({ field }) => (
+            <FormItem>
+                <FormLabel className="text-base">Story-time Voice</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a voice for stories" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {availableVoices.map((voice) => (
+                            <SelectItem key={voice.id} value={voice.id}>{voice.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+            </FormItem>
+        )}
+    />
+  )
+
   return (
     <div className="flex flex-col min-h-screen">
       <AppHeader />
@@ -167,7 +205,7 @@ export default function SettingsPage() {
           <div className="flex justify-between items-center mb-6">
             <h1 className="font-headline text-3xl text-primary">Child Profiles</h1>
             {!isAdding && (
-              <Button onClick={() => { setIsAdding(true); form.reset({ name: '', age: 7, readingLevel: 3, preferredThemes: [] }); }}>
+              <Button onClick={() => { setIsAdding(true); form.reset({ name: '', age: 7, readingLevel: 3, preferredThemes: [], voice: 'Rachel' }); }}>
                 <UserPlus className="mr-2" />
                 Add Profile
               </Button>
@@ -208,6 +246,7 @@ export default function SettingsPage() {
                                     </FormItem>
                                 )} />
                             </div>
+                            {renderVoiceSelector(form)}
                             {renderThemeSelector(form)}
                         </CardContent>
                         <CardFooter className="justify-end gap-2">
@@ -253,6 +292,7 @@ export default function SettingsPage() {
                                             </FormItem>
                                         )} />
                                      </div>
+                                     {renderVoiceSelector(editingForm)}
                                      {renderThemeSelector(editingForm)}
                                 </CardContent>
                                 <CardFooter className="justify-end gap-2">
@@ -268,13 +308,22 @@ export default function SettingsPage() {
                             <CardTitle>{profile.name}</CardTitle>
                             <CardDescription>Age: {profile.age} | Reading Level: {getReadingLevelLabel(profile.readingLevel)}</CardDescription>
                         </CardHeader>
-                        <CardContent>
+                         <CardContent className="space-y-4">
                            <div className="flex flex-wrap gap-2">
-                                {profile.preferredThemes && profile.preferredThemes.map(themeId => {
-                                    const theme = availableThemes.find(t => t.id === themeId);
-                                    return theme ? <Badge key={themeId} variant="secondary">{theme.name}</Badge> : null;
-                                })}
+                                {profile.preferredThemes && profile.preferredThemes.length > 0 && (
+                                  <>
+                                    {profile.preferredThemes.map(themeId => {
+                                        const theme = availableThemes.find(t => t.id === themeId);
+                                        return theme ? <Badge key={themeId} variant="secondary">{theme.name}</Badge> : null;
+                                    })}
+                                  </>
+                                )}
                             </div>
+                             {profile.voice && (
+                                <div className="text-sm text-muted-foreground">
+                                    Voice: {availableVoices.find(v => v.id === profile.voice)?.name || profile.voice}
+                                </div>
+                            )}
                         </CardContent>
                         <CardFooter className="justify-end gap-2">
                             <Button variant="outline" size="icon" onClick={() => startEditing(profile)}><Edit className="h-4 w-4"/></Button>

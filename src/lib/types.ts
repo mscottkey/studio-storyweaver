@@ -16,6 +16,7 @@ export interface Story {
   age?: number;
   profileId?: string;
   theme?: string;
+  voice?: string;
 }
 
 export interface Profile {
@@ -24,4 +25,5 @@ export interface Profile {
   age: number;
   readingLevel: number;
   preferredThemes?: string[];
+  voice?: string;
 }
