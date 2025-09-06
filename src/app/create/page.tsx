@@ -93,10 +93,12 @@ export default function CreateStoryPage() {
     }
   }, [selectedProfile, form, setTheme]);
 
-  const handlePresetClick = (field: 'hero' | 'setting', value: string, theme: string) => {
+  const handlePresetClick = (field: 'hero' | 'setting', value: string, theme?: string) => {
     form.setValue(field, value);
-    form.setValue('theme', theme);
-    setTheme(theme);
+    if (theme) {
+        form.setValue('theme', theme);
+        setTheme(theme);
+    }
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
