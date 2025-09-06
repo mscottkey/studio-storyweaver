@@ -12,4 +12,6 @@ export interface Story {
   currentChoices: [string, string] | [];
   createdAt: string;
   updatedAt: string;
+  readingLevel?: number;
+  age?: number;
 }

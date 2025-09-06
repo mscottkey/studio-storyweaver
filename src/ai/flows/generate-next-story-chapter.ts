@@ -15,6 +15,8 @@ const GenerateNextStoryChapterInputSchema = z.object({
   setting: z.string().describe('The setting of the story.'),
   previousStory: z.string().describe('The story thus far.'),
   choice: z.string().describe('The choice the user made to get to this chapter.'),
+  age: z.number().optional().describe('The age of the child reading the story.'),
+  readingLevel: z.number().min(1).max(5).optional().describe('The reading level of the child, from 1 (easiest) to 5 (most advanced).'),
 });
 export type GenerateNextStoryChapterInput = z.infer<typeof GenerateNextStoryChapterInputSchema>;
 
@@ -36,6 +38,8 @@ const prompt = ai.definePrompt({
   input: {schema: GenerateNextStoryChapterInputSchema},
   output: {schema: GenerateNextStoryChapterOutputSchema},
   prompt: `You are a creative storyteller, crafting 'Choose Your Own Adventure' stories for children.
+
+  The story should be tailored for a child of age {{age}} with a reading level of {{readingLevel}} (1 is easiest, 5 is most advanced). Use vocabulary and sentence structures appropriate for that level.
 
   Continue the story based on the previous story, the user's last choice, the hero, and the setting.
 

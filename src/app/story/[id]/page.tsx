@@ -102,6 +102,8 @@ export default function StoryPage() {
         setting: story.setting,
         previousStory,
         choice,
+        age: story.age,
+        readingLevel: story.readingLevel,
       });
 
       const newChapter: StoryChapter = {

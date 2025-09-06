@@ -17,6 +17,8 @@ const EnsureHeroAndSettingInclusionInputSchema = z.object({
     .describe('The current story text to build upon.'),
   hero: z.string().describe('The name of the hero character.'),
   setting: z.string().describe('The setting of the story.'),
+  age: z.number().optional().describe('The age of the child reading the story.'),
+  readingLevel: z.number().min(1).max(5).optional().describe('The reading level of the child, from 1 (easiest) to 5 (most advanced).'),
 });
 export type EnsureHeroAndSettingInclusionInput = z.infer<
   typeof EnsureHeroAndSettingInclusionInputSchema
@@ -44,6 +46,8 @@ const prompt = ai.definePrompt({
   input: {schema: EnsureHeroAndSettingInclusionInputSchema},
   output: {schema: EnsureHeroAndSettingInclusionOutputSchema},
   prompt: `You are a creative story writer for children. Continue the story based on the current text, weaving in the hero and setting.
+
+The story should be tailored for a child of age {{age}} with a reading level of {{readingLevel}} (1 is easiest, 5 is most advanced). Use vocabulary and sentence structures appropriate for that level.
 
 Current story:
 {{{currentStoryText}}}

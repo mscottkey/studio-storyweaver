@@ -15,10 +15,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2 } from 'lucide-react';
 import { AppHeader } from '@/components/header';
+import { Slider } from '@/components/ui/slider';
 
 const formSchema = z.object({
   hero: z.string().min(2, { message: 'Hero name must be at least 2 characters.' }).max(50),
   setting: z.string().min(5, { message: 'Setting must be at least 5 characters.' }).max(200),
+  age: z.number().min(3).max(12),
+  readingLevel: z.number().min(1).max(5),
 });
 
 const STORY_STORAGE_KEY = 'storyweaver-stories';
@@ -33,6 +36,8 @@ export default function CreateStoryPage() {
     defaultValues: {
       hero: '',
       setting: '',
+      age: 7,
+      readingLevel: 3,
     },
   });
 
@@ -43,12 +48,16 @@ export default function CreateStoryPage() {
         currentStoryText: '',
         hero: values.hero,
         setting: values.setting,
+        age: values.age,
+        readingLevel: values.readingLevel,
       });
 
       const newStory: Story = {
         id: Date.now().toString(),
         hero: values.hero,
         setting: values.setting,
+        age: values.age,
+        readingLevel: values.readingLevel,
         chapters: [
           {
             id: crypto.randomUUID(),
@@ -114,6 +123,44 @@ export default function CreateStoryPage() {
                       <FormLabel className="text-lg">Where does the story take place?</FormLabel>
                       <FormControl>
                         <Textarea placeholder="e.g., In a shimmering, enchanted forest" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-lg">Reader's Age: {field.value}</FormLabel>
+                      <FormControl>
+                        <Slider
+                          min={3}
+                          max={12}
+                          step={1}
+                          defaultValue={[field.value]}
+                          onValueChange={(value) => field.onChange(value[0])}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="readingLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-lg">Reading Level: {field.value}</FormLabel>
+                       <FormControl>
+                        <Slider
+                          min={1}
+                          max={5}
+                          step={1}
+                          defaultValue={[field.value]}
+                          onValueChange={(value) => field.onChange(value[0])}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
