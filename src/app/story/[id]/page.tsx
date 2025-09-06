@@ -23,6 +23,8 @@ const STORY_STORAGE_KEY = 'storyweaver-stories';
 const Word = ({ word, context, age }: { word: string; context: string; age?: number }) => {
   const [definition, setDefinition] = useState('');
   const [isDefining, setIsDefining] = useState(false);
+  const [isReadingDefinition, setIsReadingDefinition] = useState(false);
+  const definitionAudioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
   const handleWordClick = async () => {
@@ -43,6 +45,28 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
     }
   };
 
+  const handleReadDefinition = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent popover from closing
+    if (isReadingDefinition || !definition) return;
+
+    setIsReadingDefinition(true);
+    try {
+      const result = await textToSpeech({ text: definition });
+      const audio = new Audio(result.media);
+      definitionAudioRef.current = audio;
+      audio.play();
+      audio.onended = () => setIsReadingDefinition(false);
+    } catch (error) {
+      console.error('Failed to read definition:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Bards are busy!',
+        description: 'Could not read the definition aloud right now.',
+      });
+      setIsReadingDefinition(false);
+    }
+  }
+
   // Regular expression to check if the word contains any letters.
   const hasLetters = /[a-zA-Z]/.test(word);
   if (!hasLetters) {
@@ -52,13 +76,31 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <span onClick={handleWordClick} className="underline decoration-dotted cursor-pointer hover:text-accent">
+        <span onClick={handleWordClick} className="hover:underline decoration-dotted cursor-pointer hover:text-accent">
           {word}
         </span>
       </PopoverTrigger>
-      <PopoverContent>
+      <PopoverContent onPointerDownOutside={(e) => {
+          // If the audio is playing, don't close the popover.
+          if (definitionAudioRef.current && !definitionAudioRef.current.paused) {
+            e.preventDefault();
+          }
+      }}>
         {isDefining && <div className='flex items-center gap-2'><Loader2 className="h-4 w-4 animate-spin"/> Thinking...</div>}
-        {definition && <p>{definition}</p>}
+        {definition && (
+            <div className="flex items-start gap-2">
+                <p className="flex-grow">{definition}</p>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleReadDefinition}
+                    disabled={isReadingDefinition}
+                    className="flex-shrink-0 h-6 w-6"
+                >
+                    {isReadingDefinition ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
+                </Button>
+            </div>
+        )}
       </PopoverContent>
     </Popover>
   );
