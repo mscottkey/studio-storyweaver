@@ -18,28 +18,30 @@ import { AppHeader } from '@/components/header';
 import { Slider } from '@/components/ui/slider';
 import { getReadingLevelLabel, cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import { useTheme } from '@/components/theme-provider';
 
 const formSchema = z.object({
   hero: z.string().min(2, { message: 'Hero name must be at least 2 characters.' }).max(50),
   setting: z.string().min(5, { message: 'Setting must be at least 5 characters.' }).max(200),
   age: z.number().min(3).max(12),
   readingLevel: z.number().min(1).max(5),
+  theme: z.string().optional(),
 });
 
 const STORY_STORAGE_KEY = 'storyweaver-stories';
 
 const heroPresets = [
-  { name: 'A Brave Knight', icon: <Shield className="w-8 h-8" /> },
-  { name: 'A Swashbuckling Pirate', icon: <Anchor className="w-8 h-8" /> },
-  { name: 'A Royal Princess', icon: <Castle className="w-8 h-8" /> },
-  { name: 'A Daring Astronaut', icon: <Rocket className="w-8 h-8" /> },
+  { name: 'A Brave Knight', icon: <Shield className="w-8 h-8" />, theme: 'theme-knight' },
+  { name: 'A Swashbuckling Pirate', icon: <Anchor className="w-8 h-8" />, theme: 'theme-pirate' },
+  { name: 'A Royal Princess', icon: <Castle className="w-8 h-8" />, theme: 'theme-princess' },
+  { name: 'A Daring Astronaut', icon: <Rocket className="w-8 h-8" />, theme: 'theme-space' },
 ];
 
 const settingPresets = [
-  { name: 'An enchanted forest', icon: <Trees className="w-8 h-8" /> },
-  { name: 'A mysterious island', icon: <Palmtree className="w-8 h-8" /> },
-  { name: 'A sparkling kingdom', icon: <Sparkles className="w-8 h-8" /> },
-  { name: 'The far reaches of space', icon: <Stars className="w-8 h-8" /> },
+  { name: 'An enchanted forest', icon: <Trees className="w-8 h-8" />, theme: 'theme-forest' },
+  { name: 'A mysterious island', icon: <Palmtree className="w-8 h-8" />, theme: 'theme-pirate' },
+  { name: 'A sparkling kingdom', icon: <Sparkles className="w-8 h-8" />, theme: 'theme-princess' },
+  { name: 'The far reaches of space', icon: <Stars className="w-8 h-8" />, theme: 'theme-space' },
 ];
 
 
@@ -47,6 +49,7 @@ export default function CreateStoryPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isWeaving, setIsWeaving] = useState(false);
+  const { setTheme } = useTheme();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -55,8 +58,15 @@ export default function CreateStoryPage() {
       setting: '',
       age: 7,
       readingLevel: 3,
+      theme: 'light',
     },
   });
+
+  const handlePresetClick = (field: 'hero' | 'setting', value: string, theme: string) => {
+    form.setValue(field, value);
+    form.setValue('theme', theme);
+    setTheme(theme);
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsWeaving(true);
@@ -75,6 +85,7 @@ export default function CreateStoryPage() {
         setting: values.setting,
         age: values.age,
         readingLevel: values.readingLevel,
+        theme: values.theme,
         chapters: [
           {
             id: crypto.randomUUID(),
@@ -127,7 +138,7 @@ export default function CreateStoryPage() {
                         {heroPresets.map((preset) => (
                             <Card 
                                 key={preset.name}
-                                onClick={() => form.setValue('hero', preset.name)}
+                                onClick={() => handlePresetClick('hero', preset.name, preset.theme)}
                                 className={cn(
                                     "flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors",
                                     form.watch('hero') === preset.name && "bg-primary text-primary-foreground"
@@ -159,7 +170,7 @@ export default function CreateStoryPage() {
                         {settingPresets.map((preset) => (
                             <Card 
                                 key={preset.name}
-                                onClick={() => form.setValue('setting', preset.name)}
+                                onClick={() => handlePresetClick('setting', preset.name, preset.theme)}
                                 className={cn(
                                     "flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors",
                                     form.watch('setting') === preset.name && "bg-primary text-primary-foreground"

@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { AuthProvider } from '@/hooks/use-auth';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: 'StoryWeaver',
@@ -24,8 +25,10 @@ export default function RootLayout({
       </head>
       <body className={cn("font-body antialiased min-h-screen")}>
         <AuthProvider>
-          {children}
-          <Toaster />
+            <ThemeProvider>
+                {children}
+                <Toaster />
+            </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

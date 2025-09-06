@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useTheme } from '@/components/theme-provider';
 
 const STORY_STORAGE_KEY = 'storyweaver-stories';
 
@@ -112,6 +113,7 @@ export default function StoryPage() {
   const [story, setStory] = useState<Story | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [customChoice, setCustomChoice] = useState('');
+  const { setTheme } = useTheme();
   
   const [isGeneratingStoryAudio, setIsGeneratingStoryAudio] = useState(false);
   const [isStoryPlaying, setIsStoryPlaying] = useState(false);
@@ -139,6 +141,9 @@ export default function StoryPage() {
 
       if (currentStory) {
         setStory(currentStory);
+        if (currentStory.theme) {
+          setTheme(currentStory.theme);
+        }
       } else {
         toast({
           variant: 'destructive',
@@ -151,7 +156,11 @@ export default function StoryPage() {
       console.error('Failed to load story from localStorage', error);
       router.push('/create');
     }
-  }, [params.id, router, toast]);
+
+    return () => {
+        setTheme('light'); // Reset to default theme when leaving story
+    }
+  }, [params.id, router, toast, setTheme]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
