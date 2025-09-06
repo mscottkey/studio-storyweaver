@@ -1,1 +1,5 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/generate-next-story-chapter.ts';
+import '@/ai/flows/ensure-hero-and-setting-inclusion.ts';

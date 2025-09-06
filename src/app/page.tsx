@@ -1,3 +1,23 @@
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/logo';
+import { Sparkles } from 'lucide-react';
+
 export default function Home() {
-  return <></>;
+  return (
+    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
+      <div className="flex flex-col items-center gap-6">
+        <Logo className="text-5xl" />
+        <p className="max-w-md text-lg text-foreground/80">
+          Ready for an adventure? Let's weave a magical tale together. You bring the hero and the setting, and we'll bring the magic!
+        </p>
+        <Link href="/create" passHref>
+          <Button size="lg" className="font-bold text-lg">
+            <Sparkles className="mr-2 h-5 w-5" />
+            Start a New Story
+          </Button>
+        </Link>
+      </div>
+    </main>
+  );
 }
