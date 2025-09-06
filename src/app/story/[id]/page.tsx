@@ -253,7 +253,7 @@ export default function StoryPage() {
       toast({
         variant: 'destructive',
         title: 'The bards are taking a break...',
-        description: 'The audio service is temporarily unavailable. Please try again in a moment.',
+        description: 'The text-to-speech service seems to be overloaded. Please try again in a moment.',
       });
     } finally {
       setIsGeneratingAudio(false);
