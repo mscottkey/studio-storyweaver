@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +16,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2, Shield, Anchor, Castle, Rocket, Trees, Palmtree, Stars, Sparkles, User, Pencil } from 'lucide-react';
 import { AppHeader } from '@/components/header';
-import { cn } from '@/lib/utils';
+import { Slider } from '@/components/ui/slider';
+import { getReadingLevelLabel, cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/components/theme-provider';
 
@@ -94,15 +94,36 @@ export default function CreateStoryPage() {
   }, [selectedProfile, form, setTheme]);
 
   const handlePresetClick = (field: 'hero' | 'setting', value: string, theme?: string) => {
-    form.setValue(field, value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    // Set the field value
+    form.setValue(field, value, { 
+      shouldValidate: true, 
+      shouldDirty: true, 
+      shouldTouch: true 
+    });
+    
+    // Set the theme for the story (this will be used when the story is created)
+    // but don't change the current UI theme to avoid form interference
     if (theme) {
-      handleThemeChange(theme);
+      form.setValue('theme', theme, { 
+        shouldValidate: true, 
+        shouldDirty: true, 
+        shouldTouch: true 
+      });
     }
+    
+    // Force a re-render to ensure UI updates
+    form.trigger(field);
   };
 
   const handleThemeChange = (newTheme: string) => {
-    form.setValue('theme', newTheme, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-    setTheme(newTheme);
+    // Only update the form value for the theme - don't change the current UI theme
+    // The theme will be applied when the story is created
+    form.setValue('theme', newTheme, { 
+      shouldValidate: true, 
+      shouldDirty: true, 
+      shouldTouch: true 
+    });
+    // Note: Not calling setTheme() here to avoid UI interference during selection
   };
 
   const handleProfileSelect = (profile: Profile) => {
@@ -111,15 +132,7 @@ export default function CreateStoryPage() {
 
   const handleProfileChange = () => {
     setSelectedProfile(null);
-    form.reset({
-      hero: '',
-      setting: '',
-      age: 7,
-      readingLevel: 3,
-      theme: 'light',
-      voice: 'Rachel',
-    });
-    setTheme('light');
+    form.reset();
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -379,17 +392,6 @@ export default function CreateStoryPage() {
                 />
                 <FormField 
                   control={form.control} 
-                  name="theme" 
-                  render={({ field }) => (
-                    <FormItem className="hidden">
-                      <FormControl>
-                        <Input type="hidden" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )} 
-                />
-                <FormField 
-                  control={form.control} 
                   name="voice" 
                   render={({ field }) => (
                     <FormItem className="hidden">
@@ -433,5 +435,3 @@ export default function CreateStoryPage() {
     </div>
   );
 }
-
-    
