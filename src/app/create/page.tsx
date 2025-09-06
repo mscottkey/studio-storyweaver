@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2 } from 'lucide-react';
 import { AppHeader } from '@/components/header';
 import { Slider } from '@/components/ui/slider';
+import { getReadingLevelLabel } from '@/lib/utils';
 
 const formSchema = z.object({
   hero: z.string().min(2, { message: 'Hero name must be at least 2 characters.' }).max(50),
@@ -152,7 +153,7 @@ export default function CreateStoryPage() {
                   name="readingLevel"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-lg">Reading Level: {field.value}</FormLabel>
+                      <FormLabel className="text-lg">Reading Level: {getReadingLevelLabel(field.value)}</FormLabel>
                        <FormControl>
                         <Slider
                           min={1}

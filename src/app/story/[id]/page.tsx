@@ -31,7 +31,7 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
     if (definition) return; // Don't re-fetch if we already have it
     setIsDefining(true);
     try {
-      const result = await getWordDefinition({ word, context, age });
+      const result = await getWordDefinition({ word: word.replace(/[^a-zA-Z]/g, ''), context, age });
       setDefinition(result.definition);
     } catch (error) {
       console.error('Failed to get definition:', error);
@@ -67,7 +67,6 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
     }
   }
 
-  // Regular expression to check if the word contains any letters.
   const hasLetters = /[a-zA-Z]/.test(word);
   if (!hasLetters) {
     return <span>{word}</span>;
@@ -81,7 +80,6 @@ const Word = ({ word, context, age }: { word: string; context: string; age?: num
         </span>
       </PopoverTrigger>
       <PopoverContent onPointerDownOutside={(e) => {
-          // If the audio is playing, don't close the popover.
           if (definitionAudioRef.current && !definitionAudioRef.current.paused) {
             e.preventDefault();
           }
@@ -114,11 +112,18 @@ export default function StoryPage() {
   const [story, setStory] = useState<Story | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [customChoice, setCustomChoice] = useState('');
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  
+  const [isGeneratingStoryAudio, setIsGeneratingStoryAudio] = useState(false);
+  const [isStoryPlaying, setIsStoryPlaying] = useState(false);
+  const [storyAudioUrl, setStoryAudioUrl] = useState<string | null>(null);
+  const storyAudioRef = useRef<HTMLAudioElement>(null);
+
+  const [isGeneratingChoiceAudio, setIsGeneratingChoiceAudio] = useState(false);
+  const [isChoicePlaying, setIsChoicePlaying] = useState(false);
+  const [choiceAudioUrl, setChoiceAudioUrl] = useState<string | null>(null);
+  const choiceAudioRef = useRef<HTMLAudioElement>(null);
+
   const [selectedVoice, setSelectedVoice] = useState('Rachel');
-  const audioRef = useRef<HTMLAudioElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -157,27 +162,66 @@ export default function StoryPage() {
     }
   }, [story?.chapters.length]);
 
+  // Effect for Story Audio Player
   useEffect(() => {
-    const audio = audioRef.current;
+    const audio = storyAudioRef.current;
     if (audio) {
-      audio.onplay = () => setIsPlaying(true);
-      audio.onpause = () => setIsPlaying(false);
-      audio.onended = () => {
-        setIsPlaying(false);
-        setAudioUrl(null); // Clear audio so it can be re-generated
+      const onPlay = () => setIsStoryPlaying(true);
+      const onPause = () => setIsStoryPlaying(false);
+      const onEnded = () => {
+        setIsStoryPlaying(false);
+        setStoryAudioUrl(null);
       };
+      audio.addEventListener('play', onPlay);
+      audio.addEventListener('pause', onPause);
+      audio.addEventListener('ended', onEnded);
+      return () => {
+        audio.removeEventListener('play', onPlay);
+        audio.removeEventListener('pause', onPause);
+        audio.removeEventListener('ended', onEnded);
+      }
     }
-  }, [audioUrl]);
+  }, [storyAudioUrl]);
+
+  // Effect for Choice Audio Player
+  useEffect(() => {
+    const audio = choiceAudioRef.current;
+    if (audio) {
+      const onPlay = () => setIsChoicePlaying(true);
+      const onPause = () => setIsChoicePlaying(false);
+      const onEnded = () => {
+        setIsChoicePlaying(false);
+        setChoiceAudioUrl(null);
+      };
+      audio.addEventListener('play', onPlay);
+      audio.addEventListener('pause', onPause);
+      audio.addEventListener('ended', onEnded);
+      return () => {
+        audio.removeEventListener('play', onPlay);
+        audio.removeEventListener('pause', onPause);
+        audio.removeEventListener('ended', onEnded);
+      }
+    }
+  }, [choiceAudioUrl]);
+
+
+  const stopAllAudio = () => {
+    if (storyAudioRef.current) {
+      storyAudioRef.current.pause();
+    }
+    if (choiceAudioRef.current) {
+        choiceAudioRef.current.pause();
+    }
+    setStoryAudioUrl(null);
+    setChoiceAudioUrl(null);
+    setIsStoryPlaying(false);
+    setIsChoicePlaying(false);
+  }
 
   const handleChoice = async (choice: string) => {
     if (!story || !choice.trim()) return;
 
-    // Stop any playing audio before proceeding
-    if (audioRef.current) {
-        audioRef.current.pause();
-    }
-    setAudioUrl(null);
-    setIsPlaying(false);
+    stopAllAudio();
     
     setLoadingAI(true);
     setCustomChoice('');
@@ -228,10 +272,10 @@ export default function StoryPage() {
     }
   };
 
-  const handlePlayAudio = async () => {
-    const audio = audioRef.current;
-    if (audio && audioUrl) {
-      if (isPlaying) {
+  const handlePlayStoryAudio = async () => {
+    const audio = storyAudioRef.current;
+    if (audio && storyAudioUrl) {
+      if (isStoryPlaying) {
         audio.pause();
       } else {
         audio.play();
@@ -239,15 +283,13 @@ export default function StoryPage() {
       return;
     }
 
-    if (!story || isGeneratingAudio) return;
+    if (!story || isGeneratingStoryAudio) return;
     
-    setIsGeneratingAudio(true);
+    setIsGeneratingStoryAudio(true);
     try {
       const lastChapter = story.chapters[story.chapters.length - 1];
-      const textToRead = `${lastChapter.chapterText}\n\nWhat would you like to do next?\n\nChoice 1: ${story.currentChoices[0]}\n\nChoice 2: ${story.currentChoices[1]}`;
-
-      const result = await textToSpeech({ text: textToRead, voice: selectedVoice });
-      setAudioUrl(result.media);
+      const result = await textToSpeech({ text: lastChapter.chapterText, voice: selectedVoice });
+      setStoryAudioUrl(result.media);
     } catch (error) {
       console.error('Failed to generate audio:', error);
       toast({
@@ -256,15 +298,52 @@ export default function StoryPage() {
         description: 'The text-to-speech service seems to be overloaded. Please try again in a moment.',
       });
     } finally {
-      setIsGeneratingAudio(false);
+      setIsGeneratingStoryAudio(false);
+    }
+  };
+
+  const handlePlayChoicesAudio = async () => {
+    const audio = choiceAudioRef.current;
+    if (audio && choiceAudioUrl) {
+        if (isChoicePlaying) {
+            audio.pause();
+        } else {
+            audio.play();
+        }
+        return;
+    }
+
+    if (!story || isGeneratingChoiceAudio || story.currentChoices.length === 0) return;
+
+    setIsGeneratingChoiceAudio(true);
+    try {
+        const textToRead = `What would you like to do next?\n\nChoice 1: ${story.currentChoices[0]}\n\nChoice 2: ${story.currentChoices[1]}`;
+        const result = await textToSpeech({ text: textToRead, voice: selectedVoice });
+        setChoiceAudioUrl(result.media);
+    } catch (error) {
+        console.error('Failed to generate choice audio:', error);
+        toast({
+            variant: 'destructive',
+            title: 'The town crier is out of breath...',
+            description: 'Could not read the choices aloud. Please try again.',
+        });
+    } finally {
+        setIsGeneratingChoiceAudio(false);
     }
   };
   
   useEffect(() => {
-    if (audioUrl && audioRef.current) {
-        audioRef.current.play();
+    if (storyAudioUrl && storyAudioRef.current) {
+        storyAudioRef.current.play();
     }
-  }, [audioUrl]);
+  }, [storyAudioUrl]);
+
+  useEffect(() => {
+    if (choiceAudioUrl && choiceAudioRef.current) {
+        choiceAudioRef.current.play();
+    }
+  }, [choiceAudioUrl]);
+
 
   if (!story) {
     return (
@@ -275,6 +354,7 @@ export default function StoryPage() {
   }
 
   const voices = ["Rachel", "Adam", "Antoni", "Bella", "Domi", "Elli"];
+  const isAudioBusy = isGeneratingStoryAudio || isGeneratingChoiceAudio || loadingAI;
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
@@ -292,22 +372,22 @@ export default function StoryPage() {
               </div>
               <div className='flex items-center gap-2'>
                 <Button
-                    onClick={handlePlayAudio}
-                    disabled={isGeneratingAudio || loadingAI}
+                    onClick={handlePlayStoryAudio}
+                    disabled={isAudioBusy}
                     variant="outline"
                     size="icon"
-                    aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+                    aria-label={isStoryPlaying ? 'Pause audio' : 'Play story audio'}
                     >
-                    {isGeneratingAudio ? <Loader2 className="h-5 w-5 animate-spin" /> : isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                    {isGeneratingStoryAudio ? <Loader2 className="h-5 w-5 animate-spin" /> : isStoryPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                 </Button>
                 <div className='w-40'>
-                    <Select value={selectedVoice} onValueChange={setSelectedVoice} disabled={isGeneratingAudio || isPlaying}>
+                    <Select value={selectedVoice} onValueChange={setSelectedVoice} disabled={isAudioBusy || isStoryPlaying || isChoicePlaying}>
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a voice" />
                         </SelectTrigger>
                         <SelectContent>
                             {voices.map(voice => (
-                                <SelectItem key={voice} value={voice} className="capitalize">{voice.charAt(0).toUpperCase() + voice.slice(1)}</SelectItem>
+                                <SelectItem key={voice} value={voice} className="capitalize">{voice}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -341,7 +421,21 @@ export default function StoryPage() {
           </CardContent>
         </Card>
         <div className="flex-shrink-0 pb-4">
-          <h2 className="text-center font-headline text-xl text-primary mb-4">What happens next?</h2>
+          <div className="flex justify-center items-center mb-4">
+            <h2 className="text-center font-headline text-xl text-primary">What happens next?</h2>
+             {story.currentChoices.length > 0 && (
+                <Button
+                    onClick={handlePlayChoicesAudio}
+                    disabled={isAudioBusy}
+                    variant="ghost"
+                    size="icon"
+                    aria-label={isChoicePlaying ? 'Pause choices audio' : 'Play choices audio'}
+                    className='ml-2'
+                >
+                    {isGeneratingChoiceAudio ? <Loader2 className="h-5 w-5 animate-spin" /> : isChoicePlaying ? <Pause className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                </Button>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {story.currentChoices.length > 0 ? (
               story.currentChoices.map((choice, index) => (
@@ -390,7 +484,8 @@ export default function StoryPage() {
             )}
         </div>
       </main>
-      {audioUrl && <audio ref={audioRef} src={audioUrl} />}
+      {storyAudioUrl && <audio ref={storyAudioRef} src={storyAudioUrl} />}
+      {choiceAudioUrl && <audio ref={choiceAudioRef} src={choiceAudioUrl} />}
     </div>
   );
 }

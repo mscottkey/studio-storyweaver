@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { AppHeader } from '@/components/header';
 import { UserPlus, Trash2, Edit, X, Check } from 'lucide-react';
+import { getReadingLevelLabel } from '@/lib/utils';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.').max(50),
@@ -135,7 +136,7 @@ export default function SettingsPage() {
                             )} />
                              <FormField control={form.control} name="readingLevel" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Reading Level: {field.value}</FormLabel>
+                                    <FormLabel>Reading Level: {getReadingLevelLabel(field.value)}</FormLabel>
                                     <FormControl>
                                         <Slider min={1} max={5} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
                                     </FormControl>
@@ -177,7 +178,7 @@ export default function SettingsPage() {
                                     )} />
                                      <FormField control={editingForm.control} name="readingLevel" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Reading Level: {field.value}</FormLabel>
+                                            <FormLabel>Reading Level: {getReadingLevelLabel(field.value)}</FormLabel>
                                             <FormControl>
                                                 <Slider min={1} max={5} step={1} defaultValue={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
                                             </FormControl>
@@ -195,7 +196,7 @@ export default function SettingsPage() {
                     <Card key={profile.id} className="flex flex-col">
                         <CardHeader className="flex-grow">
                             <CardTitle>{profile.name}</CardTitle>
-                            <CardDescription>Age: {profile.age} | Reading Level: {profile.readingLevel}</CardDescription>
+                            <CardDescription>Age: {profile.age} | Reading Level: {getReadingLevelLabel(profile.readingLevel)}</CardDescription>
                         </CardHeader>
                         <CardFooter className="justify-end gap-2">
                             <Button variant="outline" size="icon" onClick={() => startEditing(profile)}><Edit className="h-4 w-4"/></Button>
