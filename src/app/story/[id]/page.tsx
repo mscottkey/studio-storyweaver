@@ -161,8 +161,8 @@ export default function StoryPage() {
       console.error('Failed to generate audio:', error);
       toast({
         variant: 'destructive',
-        title: 'The bards are tuning their lutes...',
-        description: 'We had trouble generating the audio. Please try again.',
+        title: 'The bards are taking a break...',
+        description: 'The audio service is currently busy. Please try again in a moment.',
       });
     } finally {
       setIsGeneratingAudio(false);
@@ -183,7 +183,7 @@ export default function StoryPage() {
     );
   }
 
-  const voices = ["algenib", "achernar", "achird", "algieba", "alnilam", "aoede", "autonoe", "callirrhoe", "charon", "despina", "enceladus", "erinome", "fenrir", "gacrux", "iapetus", "kore", "laomedeia", "leda", "orus", "puck", "pulcherrima", "rasalgethi", "sadachbia", "sadaltager", "schedar", "sulafat", "umbriel", "vindemiatrix", "zephyr", "zubenelgenubi"];
+  const voices = ["achernar", "achird", "algenib", "algieba", "alnilam", "aoede", "autonoe", "callirrhoe", "charon", "despina", "enceladus", "erinome", "fenrir", "gacrux", "iapetus", "kore", "laomedeia", "leda", "orus", "puck", "pulcherrima", "rasalgethi", "sadachbia", "sadaltager", "schedar", "sulafat", "umbriel", "vindemiatrix", "zephyr", "zubenelgenubi"];
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
@@ -216,7 +216,7 @@ export default function StoryPage() {
                         </SelectTrigger>
                         <SelectContent>
                             {voices.map(voice => (
-                                <SelectItem key={voice} value={voice} className="capitalize">{voice}</SelectItem>
+                                <SelectItem key={voice} value={voice} className="capitalize">{voice.charAt(0).toUpperCase() + voice.slice(1)}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -299,5 +299,3 @@ export default function StoryPage() {
     </div>
   );
 }
-
-    
